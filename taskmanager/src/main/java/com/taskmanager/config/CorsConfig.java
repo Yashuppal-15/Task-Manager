@@ -17,7 +17,8 @@ public class CorsConfig {
 
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",   // Vite dev server
-                "http://localhost:3000"    // fallback
+                "http://localhost:3000",
+                "https://task-manager-ten-tau-65.vercel.app"// fallback
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

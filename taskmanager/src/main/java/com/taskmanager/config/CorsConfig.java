@@ -15,17 +15,26 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",   // Vite dev server
-                "http://localhost:3000",
-                "https://task-manager-ten-tau-65.vercel.app"// fallback
-        ));
+        // Allow all origins — safe for a portfolio/demo app
+        // If you want to restrict, list exact origins instead
+        config.setAllowedOriginPatterns(List.of("*"));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
 
-        config.setAllowCredentials(true);
+        config.setExposedHeaders(List.of("Authorization"));
+
+        // NOTE: allowCredentials(true) cannot be combined with allowedOriginPatterns("*")
+        // if you need cookies/credentials. Since you use JWT in headers, set to false.
+        config.setAllowCredentials(false);
 
         config.setMaxAge(3600L);
 

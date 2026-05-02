@@ -170,11 +170,11 @@ VITE_API_URL=https://your-railway-app.up.railway.app
 
 The backend explicitly allows the Vercel frontend origin. This is configured in `CorsConfig.java`:
 
-```java
+``java
 config.setAllowedOrigins(List.of(
     "https://task-manager-ten-tau-65.vercel.app"
 ));
-```
+``
 
 **Important:** If you redeploy to a new Vercel URL, update this list and redeploy the backend.
 

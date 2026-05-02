@@ -2,7 +2,6 @@ package com.taskmanager.config;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -33,23 +32,27 @@ public class JwtUtil {
     }
 
     public String extractEmail(String token) {
-        return Jwts.parser()
-                .verifyWith(getKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        return getClaims(token).getSubject();
+    }
+
+    public String extractRole(String token) {
+        return getClaims(token).get("role", String.class);
     }
 
     public boolean isValid(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getKey())
-                    .build()
-                    .parseSignedClaims(token);
+            getClaims(token);
             return true;
         } catch (JwtException e) {
             return false;
         }
+    }
+
+    private Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(getKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

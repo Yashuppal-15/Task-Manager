@@ -10,7 +10,6 @@ const PRIORITIES = ["LOW", "MEDIUM", "HIGH"];
 export default function TaskDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const [task, setTask] = useState(null);
   const [comments, setComments] = useState([]);
@@ -24,29 +23,30 @@ export default function TaskDetail() {
   const [commentText, setCommentText] = useState("");
   const [posting, setPosting] = useState(false);
 
-  // We find the task by fetching all projects then their tasks
-  // Since there's no GET /api/tasks/:id endpoint, we search via localStorage project context
-  // We use a workaround: store task data when navigating
   useEffect(() => {
     async function load() {
       try {
-        // Try to get task from projects (fetch all projects and scan tasks)
+        // Find the task by scanning all projects' tasks
         const pRes = await getAllProjects();
         let found = null;
+
         for (const p of pRes.data) {
           try {
-            const { getTasksByProject } = await import("../services/taskService");
             const tRes = await getTasksByProject(p.id);
             found = tRes.data.find((t) => String(t.id) === String(id));
             if (found) break;
-          } catch {}
+          } catch {
+            // skip projects we can't fetch tasks for
+          }
         }
+
         if (found) {
           setTask(found);
           setEditForm({
             title: found.title,
             description: found.description || "",
             priority: found.priority,
+            status: found.status,
             deadline: found.deadline || "",
             assignedToId: found.assignedTo?.id || "",
             projectId: found.project?.id,
@@ -77,7 +77,7 @@ export default function TaskDetail() {
       await updateTask(id, payload);
       setTask({ ...task, ...editForm });
       setEditMode(false);
-    } catch (err) {
+    } catch {
       alert("Failed to update task");
     }
   }
@@ -86,7 +86,7 @@ export default function TaskDetail() {
     try {
       await updateTaskStatus(id, status);
       setTask({ ...task, status });
-    } catch (err) {
+    } catch {
       alert("Failed to update status");
     }
   }
@@ -96,7 +96,7 @@ export default function TaskDetail() {
     try {
       await deleteTask(id);
       navigate(-1);
-    } catch (err) {
+    } catch {
       alert("Failed to delete task");
     }
   }
@@ -110,7 +110,7 @@ export default function TaskDetail() {
       setCommentText("");
       const res = await getComments(id);
       setComments(res.data);
-    } catch (err) {
+    } catch {
       alert("Failed to post comment");
     } finally {
       setPosting(false);
@@ -151,7 +151,7 @@ export default function TaskDetail() {
       </div>
 
       {/* Quick status bar */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap">
         {STATUSES.map((s) => (
           <button
             key={s}
@@ -220,14 +220,24 @@ export default function TaskDetail() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
-                  <input
-                    type="date"
-                    value={editForm.deadline}
-                    onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  >
+                    {STATUSES.map((s) => <option key={s}>{s}</option>)}
+                  </select>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                <input
+                  type="date"
+                  value={editForm.deadline}
+                  onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Assign to (User ID)</label>
@@ -236,9 +246,13 @@ export default function TaskDetail() {
                   value={editForm.assignedToId}
                   onChange={(e) => setEditForm({ ...editForm, assignedToId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Optional"
                 />
               </div>
-              <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+              >
                 Save Changes
               </button>
             </form>
@@ -274,12 +288,18 @@ export default function TaskDetail() {
             </button>
           </form>
           <div className="space-y-3">
-            {comments.length === 0 && <p className="text-sm text-gray-400">No comments yet.</p>}
+            {comments.length === 0 && (
+              <p className="text-sm text-gray-400">No comments yet.</p>
+            )}
             {comments.map((c) => (
               <div key={c.id} className="bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-sm">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gray-700">{c.user?.name || c.user?.email || "User"}</span>
-                  <span className="text-xs text-gray-400">{c.createdAt?.slice(0, 16).replace("T", " ")}</span>
+                  <span className="text-xs font-medium text-gray-700">
+                    {c.user?.name || c.user?.email || "User"}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {c.createdAt?.slice(0, 16).replace("T", " ")}
+                  </span>
                 </div>
                 <p className="text-sm text-gray-700">{c.content}</p>
               </div>
@@ -291,14 +311,18 @@ export default function TaskDetail() {
       {/* History Tab */}
       {activeTab === "history" && (
         <div className="space-y-3">
-          {history.length === 0 && <p className="text-sm text-gray-400">No history recorded.</p>}
+          {history.length === 0 && (
+            <p className="text-sm text-gray-400">No history recorded.</p>
+          )}
           {history.map((h) => (
             <div key={h.id} className="bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-sm">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-gray-700">
                   {h.changedBy?.name || h.changedBy?.email || "User"}
                 </span>
-                <span className="text-xs text-gray-400">{h.changedAt?.slice(0, 16).replace("T", " ")}</span>
+                <span className="text-xs text-gray-400">
+                  {h.changedAt?.slice(0, 16).replace("T", " ")}
+                </span>
               </div>
               <p className="text-sm text-gray-600">
                 Changed <span className="font-medium text-gray-800">{h.field}</span> from{" "}

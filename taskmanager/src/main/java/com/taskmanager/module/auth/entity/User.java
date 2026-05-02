@@ -1,5 +1,6 @@
 package com.taskmanager.module.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -17,6 +18,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @JsonIgnore                          // never send hashed password to frontend
     @Column(nullable = false)
     private String password;
 
@@ -45,4 +47,3 @@ public class User {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
-

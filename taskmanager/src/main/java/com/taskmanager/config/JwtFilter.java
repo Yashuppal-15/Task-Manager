@@ -7,6 +7,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -15,7 +16,9 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
 
-    public JwtFilter(JwtUtil jwtUtil) { this.jwtUtil = jwtUtil; }
+    public JwtFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
@@ -25,10 +28,12 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             if (jwtUtil.isValid(token)) {
                 String email = jwtUtil.extractEmail(token);
+                String role  = jwtUtil.extractRole(token);   // e.g. "ADMIN" or "MEMBER"
+
                 var auth = new UsernamePasswordAuthenticationToken(
                         email,
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_USER")) // or ROLE_ADMIN if needed
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role))
                 );
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }

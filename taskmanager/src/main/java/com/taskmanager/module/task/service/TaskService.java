@@ -8,6 +8,7 @@ import com.taskmanager.module.task.dto.TaskRequest;
 import com.taskmanager.module.task.entity.*;
 import com.taskmanager.module.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -18,7 +19,8 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
 
-    public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository,
+    public TaskService(TaskRepository taskRepository,
+                       ProjectRepository projectRepository,
                        UserRepository userRepository) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
@@ -56,8 +58,10 @@ public class TaskService {
         return taskRepository.findByAssignedToId(userId);
     }
 
+    /** Tasks whose deadline is strictly before today and not yet completed. */
     public List<Task> getOverdue() {
-        return taskRepository.findByDeadlineBeforeAndStatusNot(LocalDate.now(), TaskStatus.COMPLETED);
+        return taskRepository.findByDeadlineBeforeAndStatusNot(
+                LocalDate.now(), TaskStatus.COMPLETED);
     }
 
     public Task updateStatus(Long id, TaskStatus status) {
@@ -70,17 +74,30 @@ public class TaskService {
     public Task update(Long id, TaskRequest req) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
+
         task.setTitle(req.getTitle());
         task.setDescription(req.getDescription());
-        task.setPriority(req.getPriority());
+
+        if (req.getPriority() != null) {
+            task.setPriority(req.getPriority());
+        }
+        if (req.getStatus() != null) {
+            task.setStatus(req.getStatus());
+        }
         task.setDeadline(req.getDeadline());
+
         if (req.getAssignedToId() != null) {
             User assignee = userRepository.findById(req.getAssignedToId())
                     .orElseThrow(() -> new RuntimeException("Assignee not found"));
             task.setAssignedTo(assignee);
+        } else {
+            task.setAssignedTo(null);   // allow un-assigning
         }
+
         return taskRepository.save(task);
     }
 
-    public void delete(Long id) { taskRepository.deleteById(id); }
+    public void delete(Long id) {
+        taskRepository.deleteById(id);
+    }
 }

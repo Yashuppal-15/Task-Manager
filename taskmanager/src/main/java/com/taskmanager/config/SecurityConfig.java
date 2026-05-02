@@ -3,6 +3,7 @@ package com.taskmanager.config;
 import com.taskmanager.module.auth.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -13,7 +14,6 @@ import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -23,13 +23,14 @@ public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
     private final UserRepository userRepository;
-    private final CorsConfigurationSource corsConfigurationSource; // ADD THIS
+    private final CorsConfigurationSource corsConfigurationSource;
 
-    public SecurityConfig(JwtFilter jwtFilter, UserRepository userRepository,
+    public SecurityConfig(JwtFilter jwtFilter,
+                          UserRepository userRepository,
                           CorsConfigurationSource corsConfigurationSource) {
         this.jwtFilter = jwtFilter;
         this.userRepository = userRepository;
-        this.corsConfigurationSource = corsConfigurationSource; // ADD THIS
+        this.corsConfigurationSource = corsConfigurationSource;
     }
 
     @Bean
@@ -37,8 +38,7 @@ public class SecurityConfig {
         return email -> {
             var user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
-            return org.springframework.security.core.userdetails.User
-                    .withUsername(user.getEmail())
+            return User.withUsername(user.getEmail())
                     .password(user.getPassword())
                     .roles(user.getRole().name())
                     .build();
@@ -67,10 +67,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource)) // CHANGE THIS LINE
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
